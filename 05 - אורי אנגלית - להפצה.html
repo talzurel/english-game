@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>משחק אנגלית</title>
+
+<style>
+body {
+    font-family: Arial;
+    direction: rtl;
+    text-align: center;
+    background: linear-gradient(#c8f0ff,#b8f1d8);
+}
+
+#start {
+    margin-top: 80px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    width: 320px;
+    margin: auto;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+button {
+    padding: 12px;
+    margin: 6px;
+    font-size: 18px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.main {
+    background: #4CAF50;
+    color: white;
+}
+
+#game {
+    display: none;
+}
+
+.game-box {
+    background: white;
+    padding: 20px;
+    border-radius: 20px;
+    max-width: 400px;
+    margin: auto;
+}
+
+.answers button {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    background: #eee;
+}
+
+.big {
+    font-size: 26px;
+    justify-content: center !important;
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="start">
+    <div class="card">
+        <h2>🐾 משחק אנגלית</h2>
+
+        <input id="name" placeholder="שם הילד"><br><br>
+
+        <button class="main" id="startBtn">התחל</button>
+
+        <div id="leaderboard"></div>
+    </div>
+</div>
+
+<div id="game">
+    <div class="game-box">
+
+        <button id="changeBtn">מעבר שלב ↔</button>
+        <button id="level3Btn">שלב ג ⭐</button>
+
+        <h1 id="word"></h1>
+
+        <button id="speakBtn">🔊 השמע</button>
+
+        <div id="answers" class="answers"></div>
+
+        <p id="score"></p>
+
+    </div>
+</div>
+
+<script>
+window.onload=function(){
+
+let startBtn=document.getElementById("startBtn");
+let changeBtn=document.getElementById("changeBtn");
+let level3Btn=document.getElementById("level3Btn");
+let speakBtn=document.getElementById("speakBtn");
+
+let word=document.getElementById("word");
+let answers=document.getElementById("answers");
+let scoreEl=document.getElementById("score");
+
+// שלב א
+let animals=[
+{en:"deer",he:"אייל",e:"🦌"},{en:"monkey",he:"קוף",e:"🐒"},
+{en:"giraffe",he:"ג'ירפה",e:"🦒"},{en:"bear",he:"דוב",e:"🐻"},
+{en:"lion",he:"אריה",e:"🦁"},{en:"fly",he:"זבוב",e:"🪰"},
+{en:"snail",he:"חילזון",e:"🐌"},{en:"sheep",he:"כבשה",e:"🐑"},
+{en:"goat",he:"עז",e:"🐐"},{en:"owl",he:"ינשוף",e:"🦉"},
+{en:"mouse",he:"עכבר",e:"🐭"},{en:"alligator",he:"תנין",e:"🐊"},
+{en:"frog",he:"צפרדע",e:"🐸"},{en:"hippo",he:"היפופוטם",e:"🦛"},
+{en:"cow",he:"פרה",e:"🐄"},{en:"hen",he:"תרנגולת",e:"🐔"},
+{en:"horse",he:"סוס",e:"🐎"},{en:"octopus",he:"תמנון",e:"🐙"},
+{en:"cat",he:"חתול",e:"🐱"},{en:"dog",he:"כלב",e:"🐶"}
+];
+
+// שלב ב
+let words=[
+{en:"small",he:"קטן"},{en:"big",he:"גדול"},
+{en:"tall",he:"גבוה"},{en:"brown",he:"חום"},
+{en:"gray",he:"אפור"},{en:"blue",he:"כחול"},
+{en:"wet",he:"רטוב"},{en:"hungry",he:"רעב"},
+{en:"tired",he:"עייף"},{en:"fast",he:"מהיר"},
+{en:"fat",he:"שמן"},{en:"sad",he:"עצוב"},
+{en:"happy",he:"שמח"},{en:"mad",he:"כועס"}
+];
+
+// שלב ג
+let shortWords=[...animals, ...words].filter(w =>
+    w.en.length === 3 &&
+    ["o","a","e","i"].includes(w.en[1].toLowerCase())
+);
+
+let level=1;
+let score=0;
+let player="";
+
+startBtn.onclick=function(){
+    player=document.getElementById("name").value;
+    if(!player){
+        alert("נא להזין שם");
+        return;
+    }
+
+    document.getElementById("start").style.display="none";
+    document.getElementById("game").style.display="block";
+
+    score=0;
+    scoreEl.innerText="ניקוד: 0";
+
+    next();
+};
+
+// ✅ מעבר חופשי בין שלבים
+changeBtn.onclick=function(){
+    let choice = prompt("בחר שלב:\n1 = חיות 🐾\n2 = מילים 📘\n3 = שלב ג ⭐");
+
+    if(choice=="1") level=1;
+    if(choice=="2") level=2;
+    if(choice=="3") level=3;
+
+    next();
+};
+
+level3Btn.onclick=function(){
+    level=3;
+    next();
+};
+
+speakBtn.onclick=speak;
+
+// ✅ שאלה עם רנדומליות אמיתית
+function next(){
+
+    if(score>=300 && level==1) level=2;
+    if(score>=500 && level==2) level=3;
+
+    let pool = level==1?animals:level==2?words:shortWords;
+
+    let current = pool[Math.floor(Math.random()*pool.length)];
+
+    word.innerText=current.en;
+
+    // ✅ תיקון: בחירת תשובות רנדומלית אמיתית
+    let others = pool.filter(o => o.en !== current.en);
+    others = shuffle(others).slice(0,3);
+
+    let options = shuffle([current, ...others]);
+
+    answers.innerHTML="";
+
+    options.forEach(o=>{
+        let b=document.createElement("button");
+
+        if(level==1){
+            b.innerHTML=o.he+" "+(o.e || "");
+        }else{
+            b.innerText=o.he;
+            b.classList.add("big");
+        }
+
+        b.onclick=function(){
+            if(o.en==current.en){
+                score+=10;
+                scoreEl.innerText="ניקוד: "+score;
+                next();
+            }else{
+                saveScore();
+                alert("נפסלת!");
+                location.reload();
+            }
+        };
+
+        answers.appendChild(b);
+    });
+
+    speakBtn.style.display = level==3 ? "none":"inline-block";
+
+    speak();
+}
+
+function speak(){
+    if(level==3) return;
+    let msg=new SpeechSynthesisUtterance(word.innerText);
+    msg.lang="en-US";
+    speechSynthesis.cancel();
+    speechSynthesis.speak(msg);
+}
+
+function shuffle(arr){
+    return arr.slice().sort(()=>Math.random()-0.5);
+}
+
+function saveScore(){
+    let scores=JSON.parse(localStorage.getItem("scores")||"[]");
+
+    scores.push({name:player,score:score});
+
+    let map={};
+    scores.forEach(s=>{
+        if(!map[s.name] || s.score>map[s.name]){
+            map[s.name]=s.score;
+        }
+    });
+
+    let final=Object.keys(map).map(n=>({name:n,score:map[n]}));
+    final.sort((a,b)=>b.score-a.score);
+
+    localStorage.setItem("scores",JSON.stringify(final));
+
+    showLeaderboard();
+}
+
+function showLeaderboard(){
+    let scores=JSON.parse(localStorage.getItem("scores")||"[]");
+
+    let html="<h3>🏆 מובילים</h3>";
+
+    scores.slice(0,5).forEach(s=>{
+        html+=s.name+" - "+s.score+"<br>";
+    });
+
+    document.getElementById("leaderboard").innerHTML=html;
+}
+
+showLeaderboard();
+
+};
+</script>
+
+</body>
+</html>
+``
